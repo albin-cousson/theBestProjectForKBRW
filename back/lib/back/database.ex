@@ -10,6 +10,23 @@ defmodule Database do
     GenServer.call(__MODULE__, {:get, key})
   end
 
+  def search(database, criteria) do
+    orders = :ets.tab2list(database)
+
+    Enum.map(criteria, fn {key, value} ->
+      Enum.filter(orders, fn
+        {_key, %{^key => ^value}} -> true
+        _ -> false
+      end)
+    end)
+
+    # Enum.filter(orders, fn  
+    #   {_key, %{key => value} -> Enum.map(criteria, fn {^key, ^value} -> true
+    #   _ -> false
+    #   end)  
+    # end)
+  end
+
   def create(data) do
     GenServer.cast(__MODULE__, {:create, data})
   end
@@ -28,11 +45,14 @@ defmodule Database do
     {:ok, table}
   end
 
-  @impl true 
-  def handle_call({:get, key}, _from, table) do 
+  @impl true
+  def handle_call({:get, key}, _from, table) do
     case :ets.lookup(table, key) do
-      [{^key, data}] -> {:reply, {:ok, data}, table}
-      [] -> {:reply, nil, table}
+      [{^key, data}] ->
+        {:reply, {:ok, data}, table}
+
+      [] ->
+        {:reply, nil, table}
     end
   end
 
@@ -45,10 +65,12 @@ defmodule Database do
   @impl true
   def handle_cast({:update, {key, value}}, table) do
     case :ets.lookup(table, key) do
-      [{^key, data}] -> 
+      [{^key, data}] ->
         :ets.insert(table, {key, value})
         {:noreply, table}
-      [] -> {:noreply, table}
+
+      [] ->
+        {:noreply, table}
     end
   end
 
@@ -57,5 +79,4 @@ defmodule Database do
     :ets.delete(table, key)
     {:noreply, table}
   end
-
 end
