@@ -4,6 +4,7 @@ defmodule Server.Router do
   my_error(code: 404, content: "Go away, you are not welcome here")
 
   my_get "/" do
+    IO.puts("salut")
     {200, "Welcome to the new world of Plugs!"}
   end
 

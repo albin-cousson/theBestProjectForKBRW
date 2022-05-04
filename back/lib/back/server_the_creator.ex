@@ -32,9 +32,10 @@ defmodule Server.TheCreator do
     quote do
       @path [unquote(function_name) | @path]
       def unquote(function_name)(conn) do
+        {code, res} = unquote(block)
         conn
         |> put_resp_content_type("text/plain")
-        |> send_resp(elem(unquote(block), 0), elem(unquote(block), 1))
+        |> send_resp(code, res)
       end
     end
   end
@@ -48,13 +49,20 @@ defmodule Server.TheCreator do
       end
 
       def call(conn, _opts) do
-        Enum.map(@path, fn name ->
-          [head | body] = String.split(Atom.to_string(name), " ", trim: true)
-
-          if to_string(head) == "my_error" || to_string(body) == conn.request_path do
-            apply(__MODULE__, name, [conn])
+        value =
+          @path
+          |> Enum.map(fn x ->
+            String.split(Atom.to_string(x), " ")
+          end)
+          |> Enum.find(fn [head | body] ->
+            head == "my_error" || to_string(body) == conn.request_path
+          end)
+          case value do
+            [name] ->
+              apply(__MODULE__, String.to_atom(name), [conn])
+            [name | path] ->
+              apply(__MODULE__, String.to_atom(name <> " " <> to_string(path)), [conn])
           end
-        end)
       end
     end
   end

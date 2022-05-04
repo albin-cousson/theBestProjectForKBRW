@@ -10,21 +10,21 @@ defmodule Database do
     GenServer.call(__MODULE__, {:get, key})
   end
 
+  def lookupAll() do
+    GenServer.call(__MODULE__, :getAll)
+  end
+
   def search(database, criteria) do
     orders = :ets.tab2list(database)
 
-    Enum.map(criteria, fn {key, value} ->
-      Enum.filter(orders, fn
-        {_key, %{^key => ^value}} -> true
-        _ -> false
-      end)
+    Enum.filter(orders, fn {_key, res} ->
+      Enum.any?(criteria,
+        fn {key, value} ->
+          Enum.any?(res, fn {^key, ^value} -> true
+            _ -> false
+          end)
+        end)
     end)
-
-    # Enum.filter(orders, fn  
-    #   {_key, %{key => value} -> Enum.map(criteria, fn {^key, ^value} -> true
-    #   _ -> false
-    #   end)  
-    # end)
   end
 
   def create(data) do
@@ -54,6 +54,14 @@ defmodule Database do
       [] ->
         {:reply, nil, table}
     end
+  end
+
+  @impl true
+  def handle_call(:getAll, _from, table) do
+    orders = Enum.map(:ets.tab2list(table), fn {x, y} ->
+      y
+    end)
+    {:reply, {:ok, orders}, table}
   end
 
   @impl true
